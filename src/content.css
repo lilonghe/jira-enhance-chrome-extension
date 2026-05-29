@@ -165,6 +165,12 @@
   font-weight: 500;
 }
 
+.jira-subtasks-hover-popover__group--cancelled-only .jira-subtasks-hover-popover__group-assignee,
+.jira-subtasks-hover-popover__group--cancelled-only .jira-subtasks-hover-popover__group-count {
+  opacity: 0.56;
+  text-decoration: line-through;
+}
+
 .jira-subtasks-hover-popover__group--collapsed .jira-subtasks-hover-popover__list {
   display: none;
 }
@@ -189,6 +195,16 @@
 
 .jira-subtasks-hover-popover__item-link:hover {
   background: rgba(9, 30, 66, 0.04);
+}
+
+.jira-subtasks-hover-popover__item-link--cancelled {
+  opacity: 0.52;
+}
+
+.jira-subtasks-hover-popover__item-link--cancelled .jira-subtasks-hover-popover__item-key,
+.jira-subtasks-hover-popover__item-link--cancelled .jira-subtasks-hover-popover__item-title,
+.jira-subtasks-hover-popover__item-link--cancelled .jira-subtasks-hover-popover__assignee {
+  text-decoration: line-through;
 }
 
 .jira-subtasks-hover-popover__item-row {

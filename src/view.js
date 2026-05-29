@@ -130,7 +130,11 @@
     const section = createElement("section", "jira-subtasks-hover-popover__group");
     const heading = createElement("button", "jira-subtasks-hover-popover__group-heading");
     const assignee = createElement("div", "jira-subtasks-hover-popover__group-assignee", group.assigneeName);
-    const count = createElement("div", "jira-subtasks-hover-popover__group-count", `${group.items.length}`);
+    const count = createElement(
+      "div",
+      "jira-subtasks-hover-popover__group-count",
+      `${group.metric.completed}/${group.metric.total}`
+    );
     const list = createElement("ul", "jira-subtasks-hover-popover__list");
     const groupKey = presentation.buildGroupStateKey(issueKey, group.assigneeName);
     const isCollapsed = collapsedGroups.has(groupKey);
@@ -142,8 +146,9 @@
     heading.title = isCollapsed ? "Expand subtasks" : "Collapse subtasks";
 
     assignee.title = group.assigneeName;
-    count.title = `${group.items.length} subtasks`;
+    count.title = `${group.metric.completed} of ${group.metric.total} subtasks done`;
 
+    section.classList.toggle("jira-subtasks-hover-popover__group--cancelled-only", group.isCancelledOnly);
     section.classList.toggle("jira-subtasks-hover-popover__group--collapsed", isCollapsed);
     heading.append(assignee, count);
 
@@ -161,6 +166,7 @@
     const link = createElement("a", "jira-subtasks-hover-popover__item-link");
     const row = createElement("div", "jira-subtasks-hover-popover__item-row");
     const main = createElement("div", "jira-subtasks-hover-popover__item-main");
+    const isCancelled = status.isCancelledStatus(subtask);
     const statusDot = createElement(
       "span",
       `jira-subtasks-hover-popover__status-dot jira-subtasks-hover-popover__status-dot--${status.mapStatusTone(
@@ -182,6 +188,7 @@
     assignee.title = subtask.assigneeName;
 
     row.classList.toggle("jira-subtasks-hover-popover__item-row--compact", !showAssignee);
+    link.classList.toggle("jira-subtasks-hover-popover__item-link--cancelled", isCancelled);
 
     main.append(statusDot, key, title);
     if (showAssignee) {

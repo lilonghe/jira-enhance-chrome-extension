@@ -7,6 +7,7 @@
     activeIssueData: null,
     activeIssueKey: "",
     collapsedGroups: new Set(),
+    collapsedGroupsInitialized: false,
     currentRequestId: 0,
     hideTimer: 0,
     hoverCard: null,
@@ -133,6 +134,7 @@
     state.activeIssueData = null;
     state.activeIssueKey = issue.key;
     state.collapsedGroups = new Set();
+    state.collapsedGroupsInitialized = false;
 
     const popover = ensurePopover();
     popover.hidden = false;
@@ -196,18 +198,21 @@
   // and the view module turns that model into DOM nodes.
   function renderIssue(issueKey, issueData) {
     const popover = ensurePopover();
+    const scrollTop = readBodyScrollTop(popover);
     const model = presentation.buildPresentationModel(issueData.subtasks, state.layoutMode);
     const body = createBodyNode();
 
     if (model.emptyState) {
       body.appendChild(view.buildState(model.emptyState.title, model.emptyState.copy));
     } else if (model.layoutMode === "grouped") {
+      initializeCollapsedGroups(issueKey, model.groups);
       body.appendChild(view.buildGroupedContent(issueKey, model.groups, state.collapsedGroups));
     } else {
       body.appendChild(view.buildFlatList(model.items));
     }
 
     popover.replaceChildren(view.buildHeader(issueKey, model.metric), body);
+    body.scrollTop = scrollTop;
     if (state.activeCard) {
       positionPopover(state.activeCard);
     }
@@ -215,11 +220,13 @@
 
   function renderError(issueKey, error) {
     const popover = ensurePopover();
+    const scrollTop = readBodyScrollTop(popover);
     const message = error instanceof Error ? error.message : "Unknown error";
     const body = createBodyNode();
 
     body.appendChild(view.buildState("Could not load subtasks", `Jira returned an error while loading this issue: ${message}`));
     popover.replaceChildren(view.buildHeader(issueKey, "Unavailable"), body);
+    body.scrollTop = scrollTop;
 
     if (state.activeCard) {
       positionPopover(state.activeCard);
@@ -238,6 +245,7 @@
     state.activeIssueData = null;
     state.activeIssueKey = "";
     state.collapsedGroups = new Set();
+    state.collapsedGroupsInitialized = false;
     state.currentRequestId += 1;
     state.hoverCard = null;
     state.popoverHovered = false;
@@ -281,6 +289,21 @@
       }
       return;
     }
+  }
+
+  // Seed collapsed state once per hovered issue so cancelled-only groups start
+  // folded, but user toggles still persist across rerenders for that popover.
+  function initializeCollapsedGroups(issueKey, groups) {
+    if (state.collapsedGroupsInitialized) {
+      return;
+    }
+
+    state.collapsedGroups = new Set(
+      groups
+        .filter((group) => group.isCancelledOnly)
+        .map((group) => presentation.buildGroupStateKey(issueKey, group.assigneeName))
+    );
+    state.collapsedGroupsInitialized = true;
   }
 
   function findIssueCard(target) {
@@ -442,6 +465,11 @@
     const body = document.createElement("div");
     body.className = "jira-subtasks-hover-popover__body";
     return body;
+  }
+
+  function readBodyScrollTop(popover) {
+    const body = popover.querySelector(".jira-subtasks-hover-popover__body");
+    return body instanceof HTMLElement ? body.scrollTop : 0;
   }
 
   function isIssueKey(value) {

@@ -18,8 +18,8 @@
 2. `api.js` loads the parent issue plus subtask status and assignee data.
 3. `presentation.js` applies layout rules:
    - list mode sorts by status, then key
-   - cancelled subtasks are removed before grouped or list rendering
-   - grouped mode groups the remaining subtasks by assignee
+   - cancelled subtasks move to the end of each visible list or assignee group
+   - grouped mode moves assignee groups with only cancelled subtasks to the end and marks them for default collapse
 4. `view.js` renders the header, settings trigger, state blocks, grouped sections, or flat list.
 5. `content.js` swaps the popover body in place without refetching when the user changes layout settings or collapses a group.
 
@@ -58,10 +58,12 @@
    - subtasks are grouped by assignee
    - assignee rows can collapse and expand
    - rows do not repeat the assignee name
-   - cancelled subtasks are hidden entirely
+   - cancelled subtasks appear at the end of a group
+   - assignee groups with only cancelled subtasks appear after groups with active work
+   - cancelled-only assignee rows are struck through and start collapsed
 6. In list mode:
    - `todo` and `in progress` appear before `done`
-   - cancelled subtasks do not appear
+   - cancelled subtasks appear at the end
 7. Hover status dots and titles to confirm tooltips show status text and full issue text.
 8. Click a subtask row and confirm it opens the Jira issue in a new tab.
 9. Click the top-right settings icon and confirm it opens the extension options page.
@@ -82,4 +84,4 @@
 
 - The extension targets Jira boards that expose issue keys either in attributes, browse links, or visible text.
 - It relies on Jira REST endpoints under `/rest/api/2`.
-- Cancelled subtasks are excluded from both rendering and progress, so the header metric always reflects actionable work only.
+- Cancelled subtasks are excluded from progress, but still rendered at the end for reference.

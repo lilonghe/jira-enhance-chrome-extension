@@ -20,6 +20,32 @@
     return compareSubtasksByKey(left, right);
   }
 
+  function compareSubtasksForGrouped(left, right) {
+    const leftCancelled = status.isCancelledStatus(left);
+    const rightCancelled = status.isCancelledStatus(right);
+
+    if (leftCancelled !== rightCancelled) {
+      return leftCancelled ? 1 : -1;
+    }
+
+    return compareSubtasksByKey(left, right);
+  }
+
+  function compareSubtasksForDisplay(left, right) {
+    const leftCancelled = status.isCancelledStatus(left);
+    const rightCancelled = status.isCancelledStatus(right);
+
+    if (leftCancelled !== rightCancelled) {
+      return leftCancelled ? 1 : -1;
+    }
+
+    if (leftCancelled && rightCancelled) {
+      return compareSubtasksByKey(left, right);
+    }
+
+    return compareSubtasksForList(left, right);
+  }
+
   function compareAssigneeNames(leftName, rightName) {
     const leftUnassigned = leftName === "Unassigned";
     const rightUnassigned = rightName === "Unassigned";
@@ -50,17 +76,25 @@
     }
 
     return Array.from(grouped.entries())
-      .sort(([leftName], [rightName]) => compareAssigneeNames(leftName, rightName))
-      .map(([assigneeName, items]) => ({
-        assigneeName,
-        items: items.slice().sort(compareSubtasksByKey)
-      }));
+      .map(([assigneeName, items]) => {
+        const sortedItems = items.slice().sort(compareSubtasksForGrouped);
+
+        return {
+          assigneeName,
+          isCancelledOnly: sortedItems.every((subtask) => status.isCancelledStatus(subtask)),
+          metric: buildGroupMetric(sortedItems),
+          items: sortedItems
+        };
+      })
+      .sort(compareGroupsForDisplay);
   }
 
-  function getVisibleGroups(subtasks) {
-    return groupSubtasksByAssignee(subtasks).filter(
-      (group) => !group.items.every((subtask) => status.isCancelledStatus(subtask))
-    );
+  function compareGroupsForDisplay(leftGroup, rightGroup) {
+    if (leftGroup.isCancelledOnly !== rightGroup.isCancelledOnly) {
+      return leftGroup.isCancelledOnly ? 1 : -1;
+    }
+
+    return compareAssigneeNames(leftGroup.assigneeName, rightGroup.assigneeName);
   }
 
   function countCompletedSubtasks(subtasks) {
@@ -81,6 +115,13 @@
     };
   }
 
+  function buildGroupMetric(subtasks) {
+    return {
+      completed: countCompletedSubtasks(subtasks),
+      total: countTrackableSubtasks(subtasks)
+    };
+  }
+
   // Keep layout-specific filtering in one place so header metrics and rendered
   // content always describe the same visible subtask set.
   function buildPresentationModel(subtasks, layoutMode) {
@@ -95,32 +136,9 @@
       };
     }
 
-    const activeSubtasks = subtasks.filter((subtask) => !status.isCancelledStatus(subtask));
-    if (!activeSubtasks.length) {
-      return {
-        emptyState: {
-          copy: "All subtasks are cancelled.",
-          title: "No active subtasks"
-        },
-        layoutMode,
-        metric: buildMetric([])
-      };
-    }
-
     if (layoutMode === "grouped") {
-      const groups = getVisibleGroups(activeSubtasks);
+      const groups = groupSubtasksByAssignee(subtasks);
       const visibleSubtasks = groups.flatMap((group) => group.items);
-
-      if (!groups.length) {
-        return {
-          emptyState: {
-            copy: "All assignee groups only contain cancelled subtasks.",
-            title: "No active assignee groups"
-          },
-          layoutMode,
-          metric: buildMetric([])
-        };
-      }
 
       return {
         groups,
@@ -129,7 +147,7 @@
       };
     }
 
-    const items = activeSubtasks.slice().sort(compareSubtasksForList);
+    const items = subtasks.slice().sort(compareSubtasksForDisplay);
     return {
       items,
       layoutMode,
