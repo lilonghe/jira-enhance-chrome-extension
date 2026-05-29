@@ -75,7 +75,7 @@
 1. Update `manifest.json` version.
 2. Create and push a tag in the form `vX.Y.Z`.
 3. `.github/workflows/release.yml` checks that the tag version matches the manifest.
-4. `scripts/package-extension.sh` builds the release zip from `manifest.json`, `icons/`, and `src/`.
+4. `scripts/package-extension.sh` builds the release zip from `manifest.json`, `icons/`, and `src/`; source artwork should live under `design/` so it stays out of the release zip.
 5. GitHub Actions uploads the zip as both:
    - a workflow artifact
    - a GitHub Release asset

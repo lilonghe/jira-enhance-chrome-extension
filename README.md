@@ -20,7 +20,8 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 ## Project structure
 
 - `manifest.json`: Chrome extension manifest.
-- `icons/`: Extension icon assets.
+- `icons/`: Extension runtime icon assets.
+- `design/`: Source artwork kept out of the packaged extension.
 - `src/config.js`: shared selectors, field lists, and storage keys.
 - `src/status.js`: status classification and UI color mapping.
 - `src/api.js`: Jira REST fetching and one-minute cache.
