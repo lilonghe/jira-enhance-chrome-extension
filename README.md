@@ -56,8 +56,10 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 3. GitHub Actions will:
    - validate the version
    - build `dist/jira-enhance-v0.2.0.zip`
+   - build `dist/jira-enhance.zip` as the stable latest-download asset
    - upload it as a workflow artifact
-   - attach it to the GitHub Release automatically
+   - attach both files to the GitHub Release automatically
+4. The stable direct-download URL is `https://github.com/lilonghe/jira-enhance-chrome-extension/releases/latest/download/jira-enhance.zip`.
 
 ## Options
 

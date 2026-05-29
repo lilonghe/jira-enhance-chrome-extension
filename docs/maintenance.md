@@ -79,6 +79,7 @@
 5. GitHub Actions uploads the zip as both:
    - a workflow artifact
    - a GitHub Release asset
+6. The release workflow also publishes a stable latest-download asset named `jira-enhance.zip`, so the direct URL can stay fixed across versions.
 
 ## Current assumptions
 
