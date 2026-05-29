@@ -46,7 +46,7 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 1. Open `chrome://extensions`.
 2. Turn on `Developer mode`.
 3. Click `Load unpacked`.
-4. Select `/Users/llh/code/personal/vibe-coding/jira-subtask-hover`.
+4. Select this repository root directory, the one that contains `manifest.json`.
 
 ## Release
 
