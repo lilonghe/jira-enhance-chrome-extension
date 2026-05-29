@@ -26,6 +26,11 @@
         "*://*/secure/RapidBoard.jspa*"
       ],
       "js": [
+        "src/config.js",
+        "src/status.js",
+        "src/api.js",
+        "src/presentation.js",
+        "src/view.js",
         "src/content.js"
       ],
       "css": [
