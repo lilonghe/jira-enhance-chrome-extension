@@ -15,15 +15,25 @@
     return element;
   }
 
-  function buildHeader(issueKey, metric, layoutMode, menuOpen) {
+  function createSvgElement(tagName, attributes = {}) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+
+    for (const [name, value] of Object.entries(attributes)) {
+      element.setAttribute(name, value);
+    }
+
+    return element;
+  }
+
+  function buildHeader(issueKey, metric) {
     const header = createElement("header", "jira-subtasks-hover-popover__header");
     const keyRow = createElement("div", "jira-subtasks-hover-popover__key-row");
     const actions = createElement("div", "jira-subtasks-hover-popover__header-actions");
     const key = createElement("div", "jira-subtasks-hover-popover__issue-key", issueKey);
     const progress = buildHeaderMetric(metric);
-    const menu = buildLayoutMenu(layoutMode, menuOpen);
+    const settingsButton = buildSettingsButton();
 
-    actions.append(progress, menu);
+    actions.append(progress, settingsButton);
     keyRow.append(key, actions);
     header.appendChild(keyRow);
     return header;
@@ -51,48 +61,25 @@
     return progress;
   }
 
-  function buildLayoutMenu(layoutMode, menuOpen) {
-    const menu = createElement("div", "jira-subtasks-hover-popover__menu");
-    const button = createElement("button", "jira-subtasks-hover-popover__menu-trigger");
-    const dots = createElement("span", "jira-subtasks-hover-popover__menu-dots");
-    const panel = createElement("div", "jira-subtasks-hover-popover__menu-panel");
-    const item = createElement("button", "jira-subtasks-hover-popover__menu-item");
-    const icon = createElement(
-      "span",
-      `jira-subtasks-hover-popover__menu-item-icon jira-subtasks-hover-popover__menu-item-icon--${
-        layoutMode === "grouped" ? "list" : "grouped"
-      }`
-    );
-    const label = createElement(
-      "span",
-      "jira-subtasks-hover-popover__menu-item-label",
-      layoutMode === "grouped" ? "List" : "Group"
-    );
+  function buildSettingsButton() {
+    const button = createElement("button", "jira-subtasks-hover-popover__settings-trigger");
+    const icon = createSvgElement("svg", {
+      "aria-hidden": "true",
+      class: "jira-subtasks-hover-popover__settings-icon",
+      viewBox: "0 0 1024 1024"
+    });
+    const path = createSvgElement("path", {
+      d: "M640 288a64 64 0 1 1 0.032-128.032A64 64 0 0 1 640 288z m123.456-96c-14.304-55.04-64-96-123.456-96s-109.152 40.96-123.456 96H128v64h388.544c14.304 55.04 64 96 123.456 96s109.152-40.96 123.456-96H896V192h-132.544zM640 864a64 64 0 1 1 0.032-128.032A64 64 0 0 1 640 864m0-192c-59.456 0-109.152 40.96-123.456 96H128v64h388.544c14.304 55.04 64 96 123.456 96s109.152-40.96 123.456-96H896v-64h-132.544c-14.304-55.04-64-96-123.456-96M384 576a64 64 0 1 1 0.032-128.032A64 64 0 0 1 384 576m0-192c-59.456 0-109.152 40.96-123.456 96H128v64h132.544c14.304 55.04 64 96 123.456 96s109.152-40.96 123.456-96H896v-64H507.456c-14.304-55.04-64-96-123.456-96",
+      fill: "currentColor"
+    });
 
     button.type = "button";
-    button.dataset.action = "toggle-menu";
-    button.setAttribute("aria-haspopup", "menu");
-    button.setAttribute("aria-expanded", String(menuOpen));
-    button.title = "More";
+    button.dataset.action = "open-settings";
+    button.title = "Settings";
 
-    item.type = "button";
-    item.dataset.action = "toggle-layout";
-    item.title = layoutMode === "grouped" ? "Switch to list layout" : "Switch to grouped layout";
-    icon.setAttribute("aria-hidden", "true");
-
-    for (let index = 0; index < 3; index += 1) {
-      dots.appendChild(createElement("span", "jira-subtasks-hover-popover__menu-dot"));
-    }
-
-    if (menuOpen) {
-      menu.classList.add("jira-subtasks-hover-popover__menu--open");
-    }
-
-    item.append(icon, label);
-    panel.appendChild(item);
-    button.appendChild(dots);
-    menu.append(button, panel);
-    return menu;
+    icon.appendChild(path);
+    button.appendChild(icon);
+    return button;
   }
 
   function buildState(title, copy) {

@@ -10,8 +10,8 @@
     currentRequestId: 0,
     hideTimer: 0,
     hoverCard: null,
-    layoutMode: readLayoutMode(),
-    menuOpen: false,
+    issueTypeFilters: normalizeIssueTypeFilters(config.DEFAULT_SKIPPED_ISSUE_TYPES),
+    layoutMode: config.DEFAULT_LAYOUT_MODE,
     popover: null,
     popoverHovered: false,
     showTimer: 0
@@ -21,6 +21,8 @@
 
   function init() {
     ensurePopover();
+    loadSettings();
+    chrome.storage.onChanged.addListener(handleStorageChange);
     document.addEventListener("mouseover", handleMouseOver, true);
     document.addEventListener("mouseout", handleMouseOut, true);
     window.addEventListener("scroll", handleViewportChange, true);
@@ -63,6 +65,10 @@
 
     const issue = readIssueMeta(card);
     if (!issue.key) {
+      return;
+    }
+
+    if (shouldSkipIssueType(issue.issueTypeName)) {
       return;
     }
 
@@ -127,11 +133,10 @@
     state.activeIssueData = null;
     state.activeIssueKey = issue.key;
     state.collapsedGroups = new Set();
-    state.menuOpen = false;
 
     const popover = ensurePopover();
     popover.hidden = false;
-    popover.replaceChildren(view.buildHeader(issue.key, "Loading", state.layoutMode, state.menuOpen), view.buildLoadingBody());
+    popover.replaceChildren(view.buildHeader(issue.key, "Loading"), view.buildLoadingBody());
     positionPopover(card);
 
     const requestId = ++state.currentRequestId;
@@ -157,6 +162,36 @@
     }
   }
 
+  async function loadSettings() {
+    const result = await chrome.storage.sync.get({
+      [config.ISSUE_TYPE_FILTER_STORAGE_KEY]: config.DEFAULT_SKIPPED_ISSUE_TYPES,
+      [config.LAYOUT_MODE_STORAGE_KEY]: config.DEFAULT_LAYOUT_MODE
+    });
+
+    state.issueTypeFilters = normalizeIssueTypeFilters(result[config.ISSUE_TYPE_FILTER_STORAGE_KEY]);
+    state.layoutMode = normalizeLayoutMode(result[config.LAYOUT_MODE_STORAGE_KEY]);
+  }
+
+  function handleStorageChange(changes, areaName) {
+    if (areaName !== "sync") {
+      return;
+    }
+
+    const nextValue = changes[config.ISSUE_TYPE_FILTER_STORAGE_KEY]?.newValue;
+    if (nextValue !== undefined) {
+      state.issueTypeFilters = normalizeIssueTypeFilters(nextValue);
+    }
+
+    const nextLayoutMode = changes[config.LAYOUT_MODE_STORAGE_KEY]?.newValue;
+    if (nextLayoutMode !== undefined) {
+      state.layoutMode = normalizeLayoutMode(nextLayoutMode);
+
+      if (state.activeIssueKey && state.activeIssueData) {
+        renderIssue(state.activeIssueKey, state.activeIssueData);
+      }
+    }
+  }
+
   // Keep the controller focused on wiring: presentation decides what to show
   // and the view module turns that model into DOM nodes.
   function renderIssue(issueKey, issueData) {
@@ -172,7 +207,7 @@
       body.appendChild(view.buildFlatList(model.items));
     }
 
-    popover.replaceChildren(view.buildHeader(issueKey, model.metric, state.layoutMode, state.menuOpen), body);
+    popover.replaceChildren(view.buildHeader(issueKey, model.metric), body);
     if (state.activeCard) {
       positionPopover(state.activeCard);
     }
@@ -184,7 +219,7 @@
     const body = createBodyNode();
 
     body.appendChild(view.buildState("Could not load subtasks", `Jira returned an error while loading this issue: ${message}`));
-    popover.replaceChildren(view.buildHeader(issueKey, "Unavailable", state.layoutMode, state.menuOpen), body);
+    popover.replaceChildren(view.buildHeader(issueKey, "Unavailable"), body);
 
     if (state.activeCard) {
       positionPopover(state.activeCard);
@@ -199,14 +234,12 @@
     }
 
     clearHideTimer();
-    setMenuOpen(false);
     state.activeCard = null;
     state.activeIssueData = null;
     state.activeIssueKey = "";
     state.collapsedGroups = new Set();
     state.currentRequestId += 1;
     state.hoverCard = null;
-    state.menuOpen = false;
     state.popoverHovered = false;
 
     if (state.popover) {
@@ -221,25 +254,11 @@
       return;
     }
 
-    const toggleMenu = target.closest('[data-action="toggle-menu"]');
-    if (toggleMenu) {
+    const openSettings = target.closest('[data-action="open-settings"]');
+    if (openSettings) {
       event.preventDefault();
       event.stopPropagation();
-      setMenuOpen(!state.menuOpen);
-      return;
-    }
-
-    const toggleLayout = target.closest('[data-action="toggle-layout"]');
-    if (toggleLayout) {
-      event.preventDefault();
-      event.stopPropagation();
-      state.layoutMode = state.layoutMode === "grouped" ? "list" : "grouped";
-      state.menuOpen = false;
-      writeLayoutMode(state.layoutMode);
-
-      if (state.activeIssueKey && state.activeIssueData) {
-        renderIssue(state.activeIssueKey, state.activeIssueData);
-      }
+      openSettingsPage();
       return;
     }
 
@@ -261,28 +280,6 @@
         renderIssue(state.activeIssueKey, state.activeIssueData);
       }
       return;
-    }
-
-    if (state.menuOpen && !target.closest(".jira-subtasks-hover-popover__menu")) {
-      setMenuOpen(false);
-    }
-  }
-
-  function setMenuOpen(nextOpen) {
-    state.menuOpen = nextOpen;
-
-    if (!state.popover) {
-      return;
-    }
-
-    const menu = state.popover.querySelector(".jira-subtasks-hover-popover__menu");
-    const button = state.popover.querySelector('[data-action="toggle-menu"]');
-    if (menu) {
-      menu.classList.toggle("jira-subtasks-hover-popover__menu--open", nextOpen);
-    }
-
-    if (button) {
-      button.setAttribute("aria-expanded", String(nextOpen));
     }
   }
 
@@ -328,9 +325,37 @@
 
   function readIssueMeta(card) {
     return {
+      issueTypeName: extractIssueType(card),
       key: extractIssueKey(card),
       summary: extractCardSummary(card)
     };
+  }
+
+  // Jira usually exposes issue type on the card icon via alt, title, aria-label,
+  // or tooltip text. We keep the selector list narrow so random card controls do
+  // not get mistaken for the issue type.
+  function extractIssueType(card) {
+    const candidates = [card, ...card.querySelectorAll(config.ISSUE_TYPE_SELECTORS)];
+
+    for (const element of candidates) {
+      if (!(element instanceof Element)) {
+        continue;
+      }
+
+      for (const attribute of config.ISSUE_TYPE_ATTRIBUTE_NAMES) {
+        const value = normalizeIssueTypeName(element.getAttribute(attribute));
+        if (value) {
+          return value;
+        }
+      }
+
+      const text = normalizeIssueTypeName(element.textContent);
+      if (text) {
+        return text;
+      }
+    }
+
+    return "";
   }
 
   // Keys can show up in multiple places depending on the board implementation,
@@ -427,18 +452,40 @@
     return typeof value === "string" ? value.trim() : "";
   }
 
-  function readLayoutMode() {
-    try {
-      return window.localStorage.getItem(config.LAYOUT_MODE_STORAGE_KEY) === "list" ? "list" : "grouped";
-    } catch {
-      return "grouped";
+  function normalizeIssueTypeName(value) {
+    const text = pickText(value).replace(/^(issue type|type)\s*:\s*/i, "");
+    if (!text || isIssueKey(text) || text.length > 32) {
+      return "";
     }
+
+    return text;
   }
 
-  function writeLayoutMode(layoutMode) {
-    try {
-      window.localStorage.setItem(config.LAYOUT_MODE_STORAGE_KEY, layoutMode);
-    } catch {}
+  function normalizeIssueTypeFilters(values) {
+    return Array.from(
+      new Set(
+        (Array.isArray(values) ? values : [])
+          .map((value) => normalizeIssueTypeName(value).toLowerCase())
+          .filter(Boolean)
+      )
+    );
+  }
+
+  function shouldSkipIssueType(issueTypeName) {
+    const normalized = normalizeIssueTypeName(issueTypeName).toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+
+    return state.issueTypeFilters.includes(normalized);
+  }
+
+  function normalizeLayoutMode(value) {
+    return value === "list" ? "list" : config.DEFAULT_LAYOUT_MODE;
+  }
+
+  function openSettingsPage() {
+    chrome.runtime.sendMessage({ type: "jira-enhance:open-options-page" }).catch(() => {});
   }
 
   function clearShowTimer() {

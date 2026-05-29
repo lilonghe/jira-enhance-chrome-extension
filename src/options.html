@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jira Enhance Options</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="options-page">
+      <section class="options-card">
+        <div class="options-card__eyebrow">Jira Enhance</div>
+        <h1 class="options-card__title">Settings</h1>
+        <p class="options-card__copy">
+          Configure how Jira board cards behave when the extension shows subtasks on hover.
+        </p>
+
+        <section class="options-group">
+          <div class="options-group__header">
+            <div class="options-group__eyebrow">Board Card</div>
+            <h2 class="options-group__title">Hover Show Subtasks</h2>
+            <p class="options-group__copy">
+              Control which Jira board cards should skip the hover popover before any subtask request is sent.
+            </p>
+          </div>
+
+          <div class="options-field">
+            <span class="options-field__label">Display mode</span>
+            <div class="options-segmented" role="radiogroup" aria-label="Display mode">
+              <label class="options-segmented__option">
+                <input
+                  class="options-segmented__input"
+                  type="radio"
+                  name="layout-mode"
+                  value="grouped"
+                />
+                <span class="options-segmented__label">Grouped</span>
+              </label>
+              <label class="options-segmented__option">
+                <input
+                  class="options-segmented__input"
+                  type="radio"
+                  name="layout-mode"
+                  value="list"
+                />
+                <span class="options-segmented__label">List</span>
+              </label>
+            </div>
+          </div>
+
+          <label class="options-field">
+            <span class="options-field__label">Skip issue types</span>
+            <input
+              id="issue-type-filters"
+              class="options-field__input"
+              type="text"
+              placeholder="Bug,Defect,缺陷,故障"
+              spellcheck="false"
+            />
+          </label>
+        </section>
+
+        <div class="options-actions">
+          <button id="save-button" class="options-button options-button--primary" type="button">Save</button>
+          <button id="reset-button" class="options-button" type="button">Reset defaults</button>
+        </div>
+
+        <p id="status" class="options-status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

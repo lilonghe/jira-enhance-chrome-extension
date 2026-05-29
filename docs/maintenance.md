@@ -8,6 +8,8 @@
 - `src/presentation.js`: converts raw subtasks into a layout-specific view model.
 - `src/view.js`: renders the popover DOM from the presentation model.
 - `src/content.js`: owns hover lifecycle, Jira card detection, popover positioning, and click interactions.
+- `src/background.js`: opens the extension options page from extension-controlled context.
+- `src/options.html`, `src/options.css`, `src/options.js`: extension options page for configuring board-card display mode and issue type filters.
 - `src/content.css`: visual styling and the in-progress ripple animation.
 
 ## Data flow
@@ -17,14 +19,17 @@
 3. `presentation.js` applies layout rules:
    - list mode sorts by status, then key
    - grouped mode groups by assignee and hides groups whose subtasks are all cancelled
-4. `view.js` renders the header, menu, state blocks, grouped sections, or flat list.
-5. `content.js` swaps the popover body in place without refetching when the user toggles layout or collapses a group.
+4. `view.js` renders the header, settings trigger, state blocks, grouped sections, or flat list.
+5. `content.js` swaps the popover body in place without refetching when the user changes layout settings or collapses a group.
 
 ## Where to change Jira DOM heuristics
 
 - Card detection lives in `src/config.js` and `src/content.js`.
 - Update `CARD_SELECTOR` when Jira changes board card wrappers.
 - Update `SUMMARY_SELECTORS` when summary text moves inside the card.
+- Update `ISSUE_TYPE_SELECTORS` when Jira changes where issue type is exposed on the card.
+- Update `DEFAULT_SKIPPED_ISSUE_TYPES` when you want different default filters in the options page.
+- Update `DEFAULT_LAYOUT_MODE` when grouped vs list should default differently.
 - `extractIssueKey()` in `src/content.js` is the fallback chain for keys:
   - issue key attributes
   - direct `/browse/KEY-123` links
@@ -58,7 +63,9 @@
    - cancelled rows are faded and struck through
 7. Hover status dots and titles to confirm tooltips show status text and full issue text.
 8. Click a subtask row and confirm it opens the Jira issue in a new tab.
-9. Use the top-right menu to switch layouts and confirm it rerenders without a refetch.
+9. Click the top-right settings icon and confirm it opens the extension options page.
+10. Change the display mode, save, and confirm the popover rerenders in the selected layout.
+11. Change the skipped issue types, save, and confirm matching cards stop fetching.
 
 ## Release flow
 

@@ -1,0 +1,200 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(54, 179, 126, 0.08), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #f2f6fb 100%);
+  color: #172b4d;
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.options-page {
+  min-height: 100vh;
+  padding: 14px 12px;
+}
+
+.options-card {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: 16px 16px 14px;
+  border: 1px solid rgba(9, 30, 66, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(9, 30, 66, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.options-card__eyebrow {
+  margin-bottom: 6px;
+  color: #0c66e4;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.options-card__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.options-card__copy {
+  margin: 4px 0 0;
+  color: #5e6c84;
+  max-width: 480px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.options-group {
+  margin-top: 12px;
+  padding: 12px 12px 11px;
+  border: 1px solid rgba(9, 30, 66, 0.08);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(246, 249, 255, 0.94) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.options-group__header {
+  margin-bottom: 0;
+}
+
+.options-group__eyebrow {
+  color: #0c66e4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.options-group__title {
+  margin: 3px 0 0;
+  font-size: 15px;
+  line-height: 1.18;
+}
+
+.options-group__copy {
+  margin: 4px 0 0;
+  color: #5e6c84;
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.options-field {
+  display: block;
+  margin-top: 12px;
+}
+
+.options-field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.options-segmented {
+  display: inline-flex;
+  gap: 6px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(9, 30, 66, 0.06);
+}
+
+.options-segmented__option {
+  position: relative;
+  cursor: pointer;
+}
+
+.options-segmented__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.options-segmented__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  color: #44546f;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.options-segmented__input:checked + .options-segmented__label {
+  background: #ffffff;
+  color: #172b4d;
+  box-shadow: 0 1px 3px rgba(9, 30, 66, 0.1);
+}
+
+.options-segmented__input:focus-visible + .options-segmented__label {
+  outline: 2px solid rgba(12, 102, 228, 0.28);
+  outline-offset: 1px;
+}
+
+.options-field__input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(9, 30, 66, 0.14);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #172b4d;
+  font: inherit;
+}
+
+.options-field__input:focus {
+  outline: 2px solid rgba(12, 102, 228, 0.24);
+  outline-offset: 0;
+  border-color: rgba(12, 102, 228, 0.4);
+}
+
+.options-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.options-button {
+  padding: 8px 12px;
+  border: 1px solid rgba(9, 30, 66, 0.14);
+  border-radius: 9px;
+  background: #ffffff;
+  color: #172b4d;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.options-button:hover {
+  background: #f7f8f9;
+}
+
+.options-button--primary {
+  border-color: #0c66e4;
+  background: #0c66e4;
+  color: #ffffff;
+}
+
+.options-button--primary:hover {
+  background: #0055cc;
+}
+
+.options-status {
+  min-height: 18px;
+  margin: 8px 0 0;
+  color: #5e6c84;
+  font-size: 12px;
+}
