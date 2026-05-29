@@ -269,16 +269,6 @@
   white-space: nowrap;
 }
 
-.jira-subtasks-hover-popover__item-link--cancelled {
-  opacity: 0.52;
-}
-
-.jira-subtasks-hover-popover__item-link--cancelled .jira-subtasks-hover-popover__item-key,
-.jira-subtasks-hover-popover__item-link--cancelled .jira-subtasks-hover-popover__item-title,
-.jira-subtasks-hover-popover__item-link--cancelled .jira-subtasks-hover-popover__assignee {
-  text-decoration: line-through;
-}
-
 .jira-subtasks-hover-popover__state {
   padding: 16px 12px 18px;
   color: #44546f;

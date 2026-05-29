@@ -64,13 +64,20 @@
   }
 
   function countCompletedSubtasks(subtasks) {
-    return subtasks.reduce((count, subtask) => (status.isDoneStatus(subtask) ? count + 1 : count), 0);
+    return subtasks.reduce(
+      (count, subtask) => (!status.isCancelledStatus(subtask) && status.isDoneStatus(subtask) ? count + 1 : count),
+      0
+    );
+  }
+
+  function countTrackableSubtasks(subtasks) {
+    return subtasks.reduce((count, subtask) => (!status.isCancelledStatus(subtask) ? count + 1 : count), 0);
   }
 
   function buildMetric(subtasks) {
     return {
       completed: countCompletedSubtasks(subtasks),
-      total: subtasks.length
+      total: countTrackableSubtasks(subtasks)
     };
   }
 
@@ -88,8 +95,20 @@
       };
     }
 
+    const activeSubtasks = subtasks.filter((subtask) => !status.isCancelledStatus(subtask));
+    if (!activeSubtasks.length) {
+      return {
+        emptyState: {
+          copy: "All subtasks are cancelled.",
+          title: "No active subtasks"
+        },
+        layoutMode,
+        metric: buildMetric([])
+      };
+    }
+
     if (layoutMode === "grouped") {
-      const groups = getVisibleGroups(subtasks);
+      const groups = getVisibleGroups(activeSubtasks);
       const visibleSubtasks = groups.flatMap((group) => group.items);
 
       if (!groups.length) {
@@ -110,7 +129,7 @@
       };
     }
 
-    const items = subtasks.slice().sort(compareSubtasksForList);
+    const items = activeSubtasks.slice().sort(compareSubtasksForList);
     return {
       items,
       layoutMode,

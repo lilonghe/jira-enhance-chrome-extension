@@ -12,7 +12,7 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
   - flat list sorted by status
 - Includes an options page for configuring which issue types should be skipped before fetch.
 - Lets you configure the popover display mode from the options page.
-- Hides grouped sections whose subtasks are all cancelled.
+- Hides cancelled subtasks from the popover entirely.
 - Lets you collapse each assignee group.
 - Shows a `done/total` progress badge with a ring in the popover header.
 - Opens a subtask in a new tab when you click it.
@@ -37,8 +37,7 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 - Grouped mode is the default layout.
 - Layout preference and issue type filters are stored in `chrome.storage.sync`.
 - List mode sorts subtasks by status priority, then by issue key.
-- Grouped mode hides assignee groups where every subtask is cancelled.
-- Cancelled subtasks are faded and struck through.
+- Cancelled subtasks are excluded from both the progress metric and the popover list.
 - In-progress subtasks use a ripple animation on the status dot.
 
 ## Load in Chrome

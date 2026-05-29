@@ -161,7 +161,6 @@
     const link = createElement("a", "jira-subtasks-hover-popover__item-link");
     const row = createElement("div", "jira-subtasks-hover-popover__item-row");
     const main = createElement("div", "jira-subtasks-hover-popover__item-main");
-    const statusKind = status.classifyStatus(subtask.statusName, subtask.statusColor);
     const statusDot = createElement(
       "span",
       `jira-subtasks-hover-popover__status-dot jira-subtasks-hover-popover__status-dot--${status.mapStatusTone(
@@ -172,7 +171,6 @@
     const key = createElement("div", "jira-subtasks-hover-popover__item-key", subtask.key);
     const title = createElement("div", "jira-subtasks-hover-popover__item-title", subtask.summary);
     const assignee = createElement("div", "jira-subtasks-hover-popover__assignee", subtask.assigneeName);
-    const isCancelled = statusKind === "cancelled";
 
     link.href = `/browse/${encodeURIComponent(subtask.key)}`;
     link.target = "_blank";
@@ -184,7 +182,6 @@
     assignee.title = subtask.assigneeName;
 
     row.classList.toggle("jira-subtasks-hover-popover__item-row--compact", !showAssignee);
-    link.classList.toggle("jira-subtasks-hover-popover__item-link--cancelled", isCancelled);
 
     main.append(statusDot, key, title);
     if (showAssignee) {
