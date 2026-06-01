@@ -29,9 +29,14 @@
     const header = createElement("header", "jira-subtasks-hover-popover__header");
     const keyRow = createElement("div", "jira-subtasks-hover-popover__key-row");
     const actions = createElement("div", "jira-subtasks-hover-popover__header-actions");
-    const key = createElement("div", "jira-subtasks-hover-popover__issue-key", issueKey);
+    const key = createElement("a", "jira-subtasks-hover-popover__issue-key", issueKey);
     const progress = buildHeaderMetric(metric);
     const settingsButton = buildSettingsButton();
+
+    key.href = `/browse/${encodeURIComponent(issueKey)}`;
+    key.target = "_blank";
+    key.rel = "noreferrer";
+    key.title = `Open ${issueKey} in a new tab`;
 
     actions.append(progress, settingsButton);
     keyRow.append(key, actions);

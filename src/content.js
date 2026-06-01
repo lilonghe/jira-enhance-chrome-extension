@@ -1,6 +1,8 @@
 (() => {
   const JiraEnhance = globalThis.JiraEnhance || (globalThis.JiraEnhance = {});
   const { api, config, presentation, view } = JiraEnhance;
+  const DRAG_TRIGGER_DISTANCE_PX = 6;
+  const HOLD_TRIGGER_MS = 160;
 
   const state = {
     activeCard: null,
@@ -13,8 +15,13 @@
     hoverCard: null,
     issueTypeFilters: normalizeIssueTypeFilters(config.DEFAULT_SKIPPED_ISSUE_TYPES),
     layoutMode: config.DEFAULT_LAYOUT_MODE,
+    pointerDownCard: null,
+    pointerDownX: 0,
+    pointerDownY: 0,
+    pressTimer: 0,
     popover: null,
     popoverHovered: false,
+    suppressHover: false,
     showTimer: 0
   };
 
@@ -24,6 +31,9 @@
     ensurePopover();
     loadSettings();
     chrome.storage.onChanged.addListener(handleStorageChange);
+    document.addEventListener("mousedown", handleMouseDown, true);
+    document.addEventListener("mousemove", handleMouseMove, true);
+    document.addEventListener("mouseup", handleMouseUp, true);
     document.addEventListener("mouseover", handleMouseOver, true);
     document.addEventListener("mouseout", handleMouseOut, true);
     window.addEventListener("scroll", handleViewportChange, true);
@@ -54,6 +64,10 @@
   }
 
   function handleMouseOver(event) {
+    if (state.suppressHover) {
+      return;
+    }
+
     const card = findIssueCard(event.target);
     if (!card) {
       return;
@@ -97,6 +111,43 @@
     }
 
     scheduleHide();
+  }
+
+  function handleMouseDown(event) {
+    const card = findIssueCard(event.target);
+    if (!card) {
+      return;
+    }
+
+    state.pointerDownCard = card;
+    state.pointerDownX = event.clientX;
+    state.pointerDownY = event.clientY;
+    clearPressTimer();
+    state.pressTimer = window.setTimeout(() => {
+      suppressHoverForDrag();
+    }, HOLD_TRIGGER_MS);
+  }
+
+  function handleMouseMove(event) {
+    if (!state.pointerDownCard || state.suppressHover) {
+      return;
+    }
+
+    const deltaX = Math.abs(event.clientX - state.pointerDownX);
+    const deltaY = Math.abs(event.clientY - state.pointerDownY);
+    if (Math.max(deltaX, deltaY) < DRAG_TRIGGER_DISTANCE_PX) {
+      return;
+    }
+
+    suppressHoverForDrag();
+  }
+
+  function handleMouseUp() {
+    clearPressTimer();
+    state.pointerDownCard = null;
+    state.pointerDownX = 0;
+    state.pointerDownY = 0;
+    state.suppressHover = false;
   }
 
   function handleViewportChange() {
@@ -523,6 +574,13 @@
     }
   }
 
+  function clearPressTimer() {
+    if (state.pressTimer) {
+      window.clearTimeout(state.pressTimer);
+      state.pressTimer = 0;
+    }
+  }
+
   function clearHideTimer() {
     if (state.hideTimer) {
       window.clearTimeout(state.hideTimer);
@@ -532,5 +590,11 @@
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
+  }
+
+  function suppressHoverForDrag() {
+    clearPressTimer();
+    state.suppressHover = true;
+    hidePopover(true);
   }
 })();
