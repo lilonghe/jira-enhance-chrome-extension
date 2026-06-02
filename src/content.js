@@ -1,6 +1,6 @@
 (() => {
   const JiraEnhance = globalThis.JiraEnhance || (globalThis.JiraEnhance = {});
-  const { api, config, presentation, view } = JiraEnhance;
+  const { api, config, normalizeDelayMs, presentation, view } = JiraEnhance;
   const DRAG_TRIGGER_DISTANCE_PX = 6;
   const HOLD_TRIGGER_MS = 160;
 
@@ -8,13 +8,18 @@
     activeCard: null,
     activeIssueData: null,
     activeIssueKey: "",
+    blockedByCollapsed: true,
     collapsedGroups: new Set(),
     collapsedGroupsInitialized: false,
     currentRequestId: 0,
+    emptyAutoCloseMs: config.DEFAULT_EMPTY_AUTO_CLOSE_MS,
+    emptyAutoHideTimer: 0,
     hideTimer: 0,
     hoverCard: null,
+    isGhostPopover: false,
     issueTypeFilters: normalizeIssueTypeFilters(config.DEFAULT_SKIPPED_ISSUE_TYPES),
     layoutMode: config.DEFAULT_LAYOUT_MODE,
+    showBlockedBugs: config.DEFAULT_SHOW_BLOCKED_BUGS,
     pointerDownCard: null,
     pointerDownX: 0,
     pointerDownY: 0,
@@ -184,11 +189,14 @@
     state.activeCard = card;
     state.activeIssueData = null;
     state.activeIssueKey = issue.key;
+    state.blockedByCollapsed = true;
     state.collapsedGroups = new Set();
     state.collapsedGroupsInitialized = false;
 
     const popover = ensurePopover();
     popover.hidden = false;
+    clearEmptyAutoHideTimer();
+    syncPopoverTone(popover, true);
     popover.replaceChildren(view.buildHeader(issue.key, "Loading"), view.buildLoadingBody());
     positionPopover(card);
 
@@ -217,12 +225,16 @@
 
   async function loadSettings() {
     const result = await chrome.storage.sync.get({
+      [config.EMPTY_AUTO_CLOSE_MS_STORAGE_KEY]: config.DEFAULT_EMPTY_AUTO_CLOSE_MS,
       [config.ISSUE_TYPE_FILTER_STORAGE_KEY]: config.DEFAULT_SKIPPED_ISSUE_TYPES,
-      [config.LAYOUT_MODE_STORAGE_KEY]: config.DEFAULT_LAYOUT_MODE
+      [config.LAYOUT_MODE_STORAGE_KEY]: config.DEFAULT_LAYOUT_MODE,
+      [config.SHOW_BLOCKED_BUGS_STORAGE_KEY]: config.DEFAULT_SHOW_BLOCKED_BUGS
     });
 
+    state.emptyAutoCloseMs = normalizeDelayMs(result[config.EMPTY_AUTO_CLOSE_MS_STORAGE_KEY]);
     state.issueTypeFilters = normalizeIssueTypeFilters(result[config.ISSUE_TYPE_FILTER_STORAGE_KEY]);
     state.layoutMode = normalizeLayoutMode(result[config.LAYOUT_MODE_STORAGE_KEY]);
+    state.showBlockedBugs = Boolean(result[config.SHOW_BLOCKED_BUGS_STORAGE_KEY]);
   }
 
   function handleStorageChange(changes, areaName) {
@@ -235,9 +247,27 @@
       state.issueTypeFilters = normalizeIssueTypeFilters(nextValue);
     }
 
+    const nextEmptyAutoCloseMs = changes[config.EMPTY_AUTO_CLOSE_MS_STORAGE_KEY]?.newValue;
+    if (nextEmptyAutoCloseMs !== undefined) {
+      state.emptyAutoCloseMs = normalizeDelayMs(nextEmptyAutoCloseMs);
+
+      if (state.activeIssueKey && state.activeIssueData) {
+        renderIssue(state.activeIssueKey, state.activeIssueData);
+      }
+    }
+
     const nextLayoutMode = changes[config.LAYOUT_MODE_STORAGE_KEY]?.newValue;
     if (nextLayoutMode !== undefined) {
       state.layoutMode = normalizeLayoutMode(nextLayoutMode);
+
+      if (state.activeIssueKey && state.activeIssueData) {
+        renderIssue(state.activeIssueKey, state.activeIssueData);
+      }
+    }
+
+    const nextShowBlockedBugs = changes[config.SHOW_BLOCKED_BUGS_STORAGE_KEY]?.newValue;
+    if (nextShowBlockedBugs !== undefined) {
+      state.showBlockedBugs = Boolean(nextShowBlockedBugs);
 
       if (state.activeIssueKey && state.activeIssueData) {
         renderIssue(state.activeIssueKey, state.activeIssueData);
@@ -252,6 +282,13 @@
     const scrollTop = readBodyScrollTop(popover);
     const model = presentation.buildPresentationModel(issueData.subtasks, state.layoutMode);
     const body = createBodyNode();
+    const blockedBySection = state.showBlockedBugs
+      ? view.buildBlockedBySection(issueData.blockedByIssues, state.blockedByCollapsed)
+      : null;
+
+    if (blockedBySection) {
+      body.appendChild(blockedBySection);
+    }
 
     if (model.emptyState) {
       body.appendChild(view.buildState(model.emptyState.title, model.emptyState.copy));
@@ -262,6 +299,9 @@
       body.appendChild(view.buildFlatList(model.items));
     }
 
+    const useGhostTone = shouldUseGhostTone(model, blockedBySection);
+    syncPopoverTone(popover, useGhostTone);
+    syncEmptyAutoClose(useGhostTone);
     popover.replaceChildren(view.buildHeader(issueKey, model.metric), body);
     body.scrollTop = scrollTop;
     if (state.activeCard) {
@@ -276,6 +316,8 @@
     const body = createBodyNode();
 
     body.appendChild(view.buildState("Could not load subtasks", `Jira returned an error while loading this issue: ${message}`));
+    syncPopoverTone(popover, false);
+    syncEmptyAutoClose(false);
     popover.replaceChildren(view.buildHeader(issueKey, "Unavailable"), body);
     body.scrollTop = scrollTop;
 
@@ -291,14 +333,17 @@
       return;
     }
 
+    clearEmptyAutoHideTimer();
     clearHideTimer();
     state.activeCard = null;
     state.activeIssueData = null;
     state.activeIssueKey = "";
+    state.blockedByCollapsed = true;
     state.collapsedGroups = new Set();
     state.collapsedGroupsInitialized = false;
     state.currentRequestId += 1;
     state.hoverCard = null;
+    state.isGhostPopover = false;
     state.popoverHovered = false;
 
     if (state.popover) {
@@ -339,6 +384,16 @@
         renderIssue(state.activeIssueKey, state.activeIssueData);
       }
       return;
+    }
+
+    const toggleBlockedBy = target.closest('[data-action="toggle-blocked-by"]');
+    if (toggleBlockedBy) {
+      event.preventDefault();
+      state.blockedByCollapsed = !state.blockedByCollapsed;
+
+      if (state.activeIssueKey && state.activeIssueData) {
+        renderIssue(state.activeIssueKey, state.activeIssueData);
+      }
     }
   }
 
@@ -523,6 +578,30 @@
     return body instanceof HTMLElement ? body.scrollTop : 0;
   }
 
+  function shouldUseGhostTone(model, blockedBySection) {
+    return Boolean(model.emptyState) && !blockedBySection;
+  }
+
+  function syncPopoverTone(popover, useGhostTone) {
+    state.isGhostPopover = useGhostTone;
+    popover.classList.toggle("jira-subtasks-hover-popover--ghost", useGhostTone);
+  }
+
+  function syncEmptyAutoClose(shouldAutoClose) {
+    clearEmptyAutoHideTimer();
+    if (!shouldAutoClose || state.emptyAutoCloseMs === 0) {
+      return;
+    }
+
+    state.emptyAutoHideTimer = window.setTimeout(() => {
+      if (!state.isGhostPopover) {
+        return;
+      }
+
+      hidePopover(true);
+    }, state.emptyAutoCloseMs);
+  }
+
   function isIssueKey(value) {
     return config.ISSUE_KEY_RE.test(value || "");
   }
@@ -585,6 +664,13 @@
     if (state.hideTimer) {
       window.clearTimeout(state.hideTimer);
       state.hideTimer = 0;
+    }
+  }
+
+  function clearEmptyAutoHideTimer() {
+    if (state.emptyAutoHideTimer) {
+      window.clearTimeout(state.emptyAutoHideTimer);
+      state.emptyAutoHideTimer = 0;
     }
   }
 

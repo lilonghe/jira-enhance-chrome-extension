@@ -12,10 +12,13 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
   - flat list sorted by status
 - Includes an options page for configuring which issue types should be skipped before fetch.
 - Lets you configure the popover display mode from the options page.
+- Lets you toggle the `BLOCKED BY BUGS` section from the options page.
+- Lets you configure how long empty popovers stay open, with `0` meaning no auto close.
 - Keeps cancelled subtasks at the end of the popover while excluding them from progress.
 - Lets you collapse each assignee group, with cancelled-only groups starting collapsed.
 - Shows a `done/total` progress badge with a ring in the popover header.
-- Opens a subtask in a new tab when you click it.
+- Reads bug-only `is blocked by` linked issues from the Jira issue detail response and shows them in a collapsed section above the subtask content.
+- Opens popover issue rows in a new tab when you click them.
 
 ## Project structure
 
@@ -66,15 +69,18 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 1. Open the extension details page in `chrome://extensions`.
 2. Click the popover settings icon or `Extension options`.
 3. Choose the display mode for `Board Card -> Hover Show Subtasks`.
-4. Enter issue types separated by commas, such as `Bug,Defect,缺陷,故障`.
-5. Save, then hover Jira cards again.
+4. Turn `Show blocked bugs` on if you want the `BLOCKED BY BUGS` section above the list.
+5. Set `Empty auto close (ms)` if empty popovers should hide automatically. Use `0` to disable it.
+6. Enter issue types separated by commas, such as `Bug,Defect,缺陷,故障`.
+7. Save, then hover Jira cards again.
 
 ## Notes
 
 - The extension is intentionally build-free. Edit the source files, then reload the unpacked extension.
 - Content scripts load in this order: `config -> status -> api -> presentation -> view -> content`.
-- Parent issues are fetched from `/rest/api/2/issue/{issueKey}?fields=summary,subtasks`.
+- Parent issues are fetched from `/rest/api/2/issue/{issueKey}?fields=summary,subtasks,issuelinks`.
 - Subtask details are fetched from `/rest/api/2/search` with `summary,status,assignee`.
+- Linked blocker bug details are read directly from `/rest/api/2/issue/{issueKey}?fields=summary,subtasks,issuelinks`.
 - If your Jira board markup changes, start with `CARD_SELECTOR`, `SUMMARY_SELECTORS`, and `extractIssueKey()`.
 - Display mode and issue type pre-filtering are both driven by the options page and `chrome.storage.sync`.
 - Local packaging uses `bash ./scripts/package-extension.sh`.

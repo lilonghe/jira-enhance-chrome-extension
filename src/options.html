@@ -48,6 +48,17 @@
             </div>
           </div>
 
+          <label class="options-toggle">
+            <span class="options-toggle__copy">
+              <span class="options-field__label">Show blocked bugs</span>
+              <span class="options-toggle__hint">Display the BLOCKED BY BUGS section above subtasks.</span>
+            </span>
+            <span class="options-switch">
+              <input id="show-blocked-bugs" class="options-switch__input" type="checkbox" />
+              <span class="options-switch__track" aria-hidden="true"></span>
+            </span>
+          </label>
+
           <label class="options-field">
             <span class="options-field__label">Skip issue types</span>
             <input
@@ -56,6 +67,19 @@
               type="text"
               placeholder="Bug,Defect,缺陷,故障"
               spellcheck="false"
+            />
+          </label>
+
+          <label class="options-field">
+            <span class="options-field__label">Empty auto close (ms)</span>
+            <input
+              id="empty-auto-close-ms"
+              class="options-field__input"
+              type="number"
+              min="0"
+              step="100"
+              inputmode="numeric"
+              placeholder="0"
             />
           </label>
         </section>

@@ -1,12 +1,21 @@
 (() => {
   const JiraEnhance = globalThis.JiraEnhance || (globalThis.JiraEnhance = {});
 
+  function normalizeDelayMs(value) {
+    const parsed = Number(String(value).trim());
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+  }
+
   JiraEnhance.config = Object.freeze({
     SHOW_DELAY_MS: 180,
     HIDE_DELAY_MS: 200,
     CACHE_TTL_MS: 60_000,
     LAYOUT_MODE_STORAGE_KEY: "jira-subtasks-hover:layout-mode",
     DEFAULT_LAYOUT_MODE: "grouped",
+    SHOW_BLOCKED_BUGS_STORAGE_KEY: "jira-enhance:show-blocked-bugs",
+    DEFAULT_SHOW_BLOCKED_BUGS: true,
+    EMPTY_AUTO_CLOSE_MS_STORAGE_KEY: "jira-enhance:empty-auto-close-ms",
+    DEFAULT_EMPTY_AUTO_CLOSE_MS: 0,
     ISSUE_KEY_RE: /\b[A-Z][A-Z0-9_]+-\d+\b/,
     ISSUE_TYPE_FILTER_STORAGE_KEY: "jira-enhance:issue-type-filters",
     CARD_SELECTOR: [
@@ -31,7 +40,8 @@
       '[data-component-selector*="summary"]',
       '[role="heading"]'
     ],
-    ISSUE_FIELDS_QUERY: "summary,subtasks",
+    ISSUE_FIELDS_QUERY: "summary,subtasks,issuelinks",
     SUBTASK_FIELDS_QUERY: "summary,status,assignee"
   });
+  JiraEnhance.normalizeDelayMs = normalizeDelayMs;
 })();

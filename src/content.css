@@ -1,6 +1,7 @@
 #jira-subtasks-hover-popover {
   --popover-x: 0px;
   --popover-y: 0px;
+  --popover-opacity: 0.78;
   position: fixed;
   top: 0;
   left: 0;
@@ -18,10 +19,17 @@
     0 8px 20px rgba(9, 30, 66, 0.1);
   color: #172b4d;
   font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  opacity: var(--popover-opacity);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
   transform: translate3d(var(--popover-x), var(--popover-y), 0);
   transform-origin: top left;
+  transition: opacity 0.3s ease;
+  animation: jira-subtasks-hover-popover-fade-in 0.22s ease-out;
+}
+
+#jira-subtasks-hover-popover:not(.jira-subtasks-hover-popover--ghost) {
+  --popover-opacity: 1;
 }
 
 #jira-subtasks-hover-popover[hidden] {
@@ -120,6 +128,72 @@
 .jira-subtasks-hover-popover__body {
   max-height: 388px;
   overflow: auto;
+}
+
+.jira-subtasks-hover-popover__linked-section {
+  border-bottom: 1px solid rgba(9, 30, 66, 0.08);
+  background: rgba(234, 242, 255, 0.18);
+}
+
+.jira-subtasks-hover-popover__linked-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px 6px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.jira-subtasks-hover-popover__linked-heading:hover {
+  background: rgba(9, 30, 66, 0.03);
+}
+
+.jira-subtasks-hover-popover__linked-heading:focus-visible {
+  outline: 2px solid rgba(12, 102, 228, 0.28);
+  outline-offset: -1px;
+}
+
+.jira-subtasks-hover-popover__linked-label {
+  color: #6b778c;
+  min-width: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jira-subtasks-hover-popover__linked-meta {
+  color: #6b778c;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.jira-subtasks-hover-popover__linked-section .jira-subtasks-hover-popover__item:first-child {
+  border-top: 0;
+}
+
+.jira-subtasks-hover-popover__linked-section--collapsed .jira-subtasks-hover-popover__list {
+  display: none;
+}
+
+.jira-subtasks-hover-popover__linked-section .jira-subtasks-hover-popover__item-link {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.jira-subtasks-hover-popover__linked-section .jira-subtasks-hover-popover__item-key {
+  font-size: 10px;
+}
+
+.jira-subtasks-hover-popover__linked-section .jira-subtasks-hover-popover__item-title {
+  font-size: 12px;
 }
 
 .jira-subtasks-hover-popover__groups {
@@ -351,6 +425,16 @@
 
   100% {
     background-position: -100% 0;
+  }
+}
+
+@keyframes jira-subtasks-hover-popover-fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: var(--popover-opacity);
   }
 }
 

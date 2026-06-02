@@ -19,32 +19,38 @@
     return response.json();
   }
 
-  // Jira's subtask payloads are inconsistent across endpoints, so this keeps
-  // the rest of the UI working with one stable shape.
-  function normalizeSubtask(subtask, detailedFields) {
-    if (!subtask?.key) {
+  // Jira issue payloads are inconsistent across endpoints, so this keeps the
+  // rest of the UI working with one stable shape for rows in the popover.
+  function normalizeIssuePreview(issue, detailedFields, options = {}) {
+    if (!issue?.key) {
       return null;
     }
 
-    const fields = detailedFields || subtask.fields || {};
-    const summary = pickText(fields.summary) || pickText(subtask.fields?.summary) || subtask.key;
-    const statusName = pickText(fields.status?.name) || pickText(subtask.fields?.status?.name) || "Unknown";
+    const { includeAssignee = false } = options;
+    const fields = detailedFields || issue.fields || {};
+    const summary = pickText(fields.summary) || pickText(issue.fields?.summary) || issue.key;
+    const statusName = pickText(fields.status?.name) || pickText(issue.fields?.status?.name) || "Unknown";
+    const issueTypeName = pickText(fields.issuetype?.name) || pickText(issue.fields?.issuetype?.name);
     const statusColor =
       pickText(fields.status?.statusCategory?.colorName) ||
-      pickText(subtask.fields?.status?.statusCategory?.colorName) ||
+      pickText(issue.fields?.status?.statusCategory?.colorName) ||
       "medium-gray";
-    const assigneeName = pickText(fields.assignee?.displayName) || "Unassigned";
-
-    return {
-      assigneeName,
-      key: subtask.key,
+    const preview = {
+      issueTypeName,
+      key: issue.key,
       statusColor,
       statusName,
       summary
     };
+
+    if (includeAssignee) {
+      preview.assigneeName = pickText(fields.assignee?.displayName) || "Unassigned";
+    }
+
+    return preview;
   }
 
-  async function fetchSubtaskFields(issueKeys) {
+  async function fetchIssueFields(issueKeys, fieldQuery) {
     if (!issueKeys.length) {
       return new Map();
     }
@@ -52,7 +58,7 @@
     const jql = `issueKey in (${issueKeys.map((key) => `"${key}"`).join(",")})`;
     const payload = await fetchJson(
       `/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${encodeURIComponent(
-        config.SUBTASK_FIELDS_QUERY
+        fieldQuery
       )}&maxResults=${issueKeys.length}`
     );
     const fieldsByKey = new Map();
@@ -64,6 +70,16 @@
     }
 
     return fieldsByKey;
+  }
+
+  // Jira expresses link direction through type.inward/outward, so for the
+  // "Is Blocked By" section we only keep inward links with that exact label.
+  function extractBlockedByIssues(issueLinks) {
+    return (Array.isArray(issueLinks) ? issueLinks : [])
+      .filter((issueLink) => pickText(issueLink?.type?.inward).toLowerCase() === "is blocked by")
+      .map((issueLink) => normalizeIssuePreview(issueLink?.inwardIssue))
+      .filter((issue) => (issue?.issueTypeName || "").toLowerCase() === "bug")
+      .filter(Boolean);
   }
 
   // Load the parent issue first, then hydrate subtasks with richer fields from
@@ -79,12 +95,16 @@
     );
     const rawSubtasks = Array.isArray(payload.fields?.subtasks) ? payload.fields.subtasks : [];
     const subtaskFieldsByKey = rawSubtasks.length
-      ? await fetchSubtaskFields(rawSubtasks.map((subtask) => subtask.key).filter(Boolean))
+      ? await fetchIssueFields(
+          rawSubtasks.map((subtask) => subtask.key).filter(Boolean),
+          config.SUBTASK_FIELDS_QUERY
+        )
       : new Map();
     const data = {
+      blockedByIssues: extractBlockedByIssues(payload.fields?.issuelinks),
       summary: pickText(payload.fields?.summary) || issueKey,
       subtasks: rawSubtasks
-        .map((subtask) => normalizeSubtask(subtask, subtaskFieldsByKey.get(subtask.key)))
+        .map((subtask) => normalizeIssuePreview(subtask, subtaskFieldsByKey.get(subtask.key), { includeAssignee: true }))
         .filter(Boolean)
     };
 

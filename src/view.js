@@ -113,10 +113,58 @@
     const list = createElement("ul", "jira-subtasks-hover-popover__list");
 
     for (const subtask of items) {
-      list.appendChild(buildSubtaskItem(subtask, { showAssignee: true }));
+      list.appendChild(buildIssueItem(subtask, { showAssignee: true }));
     }
 
     return list;
+  }
+
+  function buildIssueMetric(issues) {
+    return issues.reduce(
+      (metric, issue) => {
+        if (status.isCancelledStatus(issue)) {
+          return metric;
+        }
+
+        metric.total += 1;
+        if (status.isDoneStatus(issue)) {
+          metric.completed += 1;
+        }
+
+        return metric;
+      },
+      { completed: 0, total: 0 }
+    );
+  }
+
+  function buildBlockedBySection(issues, isCollapsed) {
+    if (!Array.isArray(issues) || !issues.length) {
+      return null;
+    }
+
+    const metric = buildIssueMetric(issues);
+    const section = createElement("section", "jira-subtasks-hover-popover__linked-section");
+    const heading = createElement("button", "jira-subtasks-hover-popover__linked-heading");
+    const label = createElement("div", "jira-subtasks-hover-popover__linked-label", "BLOCKED BY BUGS");
+    const meta = createElement("div", "jira-subtasks-hover-popover__linked-meta", `${metric.completed}/${metric.total}`);
+    const list = createElement("ul", "jira-subtasks-hover-popover__list");
+
+    heading.type = "button";
+    heading.dataset.action = "toggle-blocked-by";
+    heading.setAttribute("aria-expanded", String(!isCollapsed));
+    heading.title = isCollapsed ? "Expand blocked bugs" : "Collapse blocked bugs";
+    label.title = "Blocked By Bugs";
+    meta.title = `${metric.completed} of ${metric.total} blocked bugs done`;
+
+    section.classList.toggle("jira-subtasks-hover-popover__linked-section--collapsed", isCollapsed);
+
+    for (const issue of issues) {
+      list.appendChild(buildIssueItem(issue, { showAssignee: false }));
+    }
+
+    heading.append(label, meta);
+    section.append(heading, list);
+    return section;
   }
 
   function buildGroupedContent(issueKey, groups, collapsedGroups) {
@@ -158,45 +206,46 @@
     heading.append(assignee, count);
 
     for (const subtask of group.items) {
-      list.appendChild(buildSubtaskItem(subtask, { showAssignee: false }));
+      list.appendChild(buildIssueItem(subtask, { showAssignee: false }));
     }
 
     section.append(heading, list);
     return section;
   }
 
-  function buildSubtaskItem(subtask, options) {
+  function buildIssueItem(issue, options) {
     const { showAssignee } = options;
     const item = createElement("li", "jira-subtasks-hover-popover__item");
     const link = createElement("a", "jira-subtasks-hover-popover__item-link");
     const row = createElement("div", "jira-subtasks-hover-popover__item-row");
     const main = createElement("div", "jira-subtasks-hover-popover__item-main");
-    const isCancelled = status.isCancelledStatus(subtask);
+    const isCancelled = status.isCancelledStatus(issue);
     const statusDot = createElement(
       "span",
       `jira-subtasks-hover-popover__status-dot jira-subtasks-hover-popover__status-dot--${status.mapStatusTone(
-        subtask.statusName,
-        subtask.statusColor
+        issue.statusName,
+        issue.statusColor
       )}`
     );
-    const key = createElement("div", "jira-subtasks-hover-popover__item-key", subtask.key);
-    const title = createElement("div", "jira-subtasks-hover-popover__item-title", subtask.summary);
-    const assignee = createElement("div", "jira-subtasks-hover-popover__assignee", subtask.assigneeName);
+    const key = createElement("div", "jira-subtasks-hover-popover__item-key", issue.key);
+    const title = createElement("div", "jira-subtasks-hover-popover__item-title", issue.summary);
 
-    link.href = `/browse/${encodeURIComponent(subtask.key)}`;
+    link.href = `/browse/${encodeURIComponent(issue.key)}`;
     link.target = "_blank";
     link.rel = "noreferrer";
-    link.title = `${subtask.key}  ${subtask.summary}`;
-    statusDot.title = subtask.statusName;
-    key.title = subtask.key;
-    title.title = subtask.summary;
-    assignee.title = subtask.assigneeName;
+    link.title = `${issue.key}  ${issue.summary}`;
+    statusDot.title = issue.statusName;
+    key.title = issue.key;
+    title.title = issue.summary;
 
     row.classList.toggle("jira-subtasks-hover-popover__item-row--compact", !showAssignee);
     link.classList.toggle("jira-subtasks-hover-popover__item-link--cancelled", isCancelled);
 
-    main.append(statusDot, key, title);
+    main.append(statusDot, key);
+    main.appendChild(title);
     if (showAssignee) {
+      const assignee = createElement("div", "jira-subtasks-hover-popover__assignee", issue.assigneeName);
+      assignee.title = issue.assigneeName;
       row.append(main, assignee);
     } else {
       row.appendChild(main);
@@ -208,6 +257,7 @@
   }
 
   JiraEnhance.view = {
+    buildBlockedBySection,
     buildFlatList,
     buildGroupedContent,
     buildHeader,

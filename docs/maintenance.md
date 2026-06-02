@@ -4,24 +4,26 @@
 
 - `src/config.js`: shared constants, selectors, storage keys, and Jira field lists.
 - `src/status.js`: maps Jira status names and category colors to UI semantics.
-- `src/api.js`: fetches parent issue data plus richer subtask fields, then caches the result for one minute.
+- `src/api.js`: fetches parent issue data plus richer subtask fields, reads blocked-by links from the same response, then caches the result for one minute.
 - `src/presentation.js`: converts raw subtasks into a layout-specific view model.
 - `src/view.js`: renders the popover DOM from the presentation model.
 - `src/content.js`: owns hover lifecycle, Jira card detection, popover positioning, and click interactions.
 - `src/background.js`: opens the extension options page from extension-controlled context.
-- `src/options.html`, `src/options.css`, `src/options.js`: extension options page for configuring board-card display mode and issue type filters.
+- `src/options.html`, `src/options.css`, `src/options.js`: extension options page for configuring board-card display mode, blocked-bug visibility, empty-state auto-close timing, and issue type filters.
 - `src/content.css`: visual styling and the in-progress ripple animation.
 
 ## Data flow
 
 1. `content.js` detects the hovered Jira card and extracts the issue key.
 2. `api.js` loads the parent issue plus subtask status and assignee data.
-3. `presentation.js` applies layout rules:
+3. `api.js` reads bug-only `is blocked by` linked issues from `issuelinks` and renders them in a collapsed section above the subtask content.
+4. `presentation.js` applies layout rules:
    - list mode sorts by status, then key
    - cancelled subtasks move to the end of each visible list or assignee group
    - grouped mode moves assignee groups with only cancelled subtasks to the end and marks them for default collapse
-4. `view.js` renders the header, settings trigger, state blocks, grouped sections, or flat list.
-5. `content.js` swaps the popover body in place without refetching when the user changes layout settings or collapses a group.
+5. `view.js` renders the header, settings trigger, state blocks, blocked-by section, grouped sections, or flat list.
+6. `content.js` swaps the popover body in place without refetching when the user changes layout settings or collapses a group.
+7. When a hover result has no subtasks and no visible blocked bugs, `content.js` can auto-close that empty popover after the configured number of milliseconds.
 
 ## Where to change Jira DOM heuristics
 
@@ -54,21 +56,23 @@
 2. Open a Jira board with cards that contain subtasks.
 3. Hover a card and confirm the popover appears after a short delay.
 4. Confirm the header shows `done/total` and the ring progress matches the visible subtasks.
-5. In grouped mode:
+5. Turn on `Show blocked bugs`, then confirm a collapsed `BLOCKED BY BUGS` section appears above the subtask content when the hovered issue is blocked by bug issues.
+6. In grouped mode:
    - subtasks are grouped by assignee
    - assignee rows can collapse and expand
    - rows do not repeat the assignee name
    - cancelled subtasks appear at the end of a group
    - assignee groups with only cancelled subtasks appear after groups with active work
    - cancelled-only assignee rows are struck through and start collapsed
-6. In list mode:
+7. In list mode:
    - `todo` and `in progress` appear before `done`
    - cancelled subtasks appear at the end
-7. Hover status dots and titles to confirm tooltips show status text and full issue text.
-8. Click a subtask row and confirm it opens the Jira issue in a new tab.
-9. Click the top-right settings icon and confirm it opens the extension options page.
-10. Change the display mode, save, and confirm the popover rerenders in the selected layout.
-11. Change the skipped issue types, save, and confirm matching cards stop fetching.
+8. Hover status dots and titles to confirm tooltips show status text and full issue text.
+9. Click a subtask row or blocked issue row and confirm it opens the Jira issue in a new tab.
+10. Click the top-right settings icon and confirm it opens the extension options page.
+11. Change the display mode, save, and confirm the popover rerenders in the selected layout.
+12. Set `Empty auto close (ms)` to a positive value, hover an issue with no visible content, and confirm the popover closes after that delay.
+13. Change the skipped issue types, save, and confirm matching cards stop fetching.
 
 ## Release flow
 
