@@ -13,11 +13,12 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 - Includes an options page for configuring which issue types should be skipped before fetch.
 - Lets you configure the popover display mode from the options page.
 - Lets you toggle the `BLOCKED BY BUGS` section from the options page.
+- Lets you format board-card date labels with tokens such as `YYYY-MM-DD`.
 - Lets you configure how long empty popovers stay open, with `0` meaning no auto close.
 - Keeps cancelled subtasks at the end of the popover while excluding them from progress.
 - Lets you collapse each assignee group, with cancelled-only groups starting collapsed.
 - Shows a `done/total` progress badge with a ring in the popover header.
-- Reads bug-only `is blocked by` linked issues from the Jira issue detail response and shows them in a collapsed section above the subtask content.
+- Reads bug-only blocked links from the Jira issue detail response and shows them in a collapsed section above the subtask content.
 - Opens popover issue rows in a new tab when you click them.
 
 ## Project structure
@@ -30,7 +31,7 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 - `src/api.js`: Jira REST fetching and one-minute cache.
 - `src/presentation.js`: grouped/list transformation and metrics.
 - `src/view.js`: popover DOM rendering.
-- `src/content.js`: hover lifecycle, card detection, positioning, and interaction wiring.
+- `src/content.js`: hover lifecycle, card detection, board-card date formatting, positioning, and interaction wiring.
 - `src/background.js`: opens the extension options page from the Jira content script.
 - `src/options.html`, `src/options.css`, `src/options.js`: extension settings UI.
 - `src/content.css`: Popover styles.
@@ -40,6 +41,7 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 
 - Grouped mode is the default layout.
 - Layout preference and issue type filters are stored in `chrome.storage.sync`.
+- Board-card dates default to `YYYY-MM-DD`, with month and day zero-padded.
 - List mode sorts subtasks by status priority, then by issue key.
 - Cancelled subtasks are excluded from progress and shown at the end of the list or grouped assignee sections.
 - In grouped mode, assignee sections that only contain cancelled subtasks move to the end, show a struck-through assignee row, and start collapsed.
@@ -69,10 +71,11 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 1. Open the extension details page in `chrome://extensions`.
 2. Click the popover settings icon or `Extension options`.
 3. Choose the display mode for `Board Card -> Hover Show Subtasks`.
-4. Turn `Show blocked bugs` on if you want the `BLOCKED BY BUGS` section above the list.
-5. Set `Empty auto close (ms)` if empty popovers should hide automatically. Use `0` to disable it.
-6. Enter issue types separated by commas, such as `Bug,Defect,缺陷,故障`.
-7. Save, then hover Jira cards again.
+4. Set `Card date format` if board-card dates should use another token layout, such as `MM/DD/YYYY`.
+5. Turn `Show blocked bugs` on if you want the `BLOCKED BY BUGS` section above the list.
+6. Set `Empty auto close (ms)` if empty popovers should hide automatically. Use `0` to disable it.
+7. Enter issue types separated by commas, such as `Bug,Defect,缺陷,故障`.
+8. Save, then hover Jira cards again.
 
 ## Notes
 
@@ -80,7 +83,7 @@ A lightweight Chrome extension that shows subtask details in a hover popover on 
 - Content scripts load in this order: `config -> status -> api -> presentation -> view -> content`.
 - Parent issues are fetched from `/rest/api/2/issue/{issueKey}?fields=summary,subtasks,issuelinks`.
 - Subtask details are fetched from `/rest/api/2/search` with `summary,status,assignee`.
-- Linked blocker bug details are read directly from `/rest/api/2/issue/{issueKey}?fields=summary,subtasks,issuelinks`.
+- Linked blocker bug details are derived from `/rest/api/2/issue/{issueKey}?fields=summary,subtasks,issuelinks`.
 - If your Jira board markup changes, start with `CARD_SELECTOR`, `SUMMARY_SELECTORS`, and `extractIssueKey()`.
 - Display mode and issue type pre-filtering are both driven by the options page and `chrome.storage.sync`.
 - Local packaging uses `bash ./scripts/package-extension.sh`.

@@ -50,6 +50,35 @@
     return preview;
   }
 
+  function normalizeIssueTypeName(value) {
+    return pickText(value).toLowerCase();
+  }
+
+  function isBugIssueTypeName(value) {
+    const normalized = normalizeIssueTypeName(value);
+    if (!normalized) {
+      return false;
+    }
+
+    return config.BUG_ISSUE_TYPE_NAMES.some((issueTypeName) => normalizeIssueTypeName(issueTypeName) === normalized);
+  }
+
+  function isBlockedByIssueLink(issueLink) {
+    if (!issueLink?.inwardIssue) {
+      return false;
+    }
+
+    const inwardLabel = pickText(issueLink?.type?.inward).toLowerCase();
+    const typeName = pickText(issueLink?.type?.name).toLowerCase();
+
+    return (
+      inwardLabel.includes("blocked by") ||
+      inwardLabel.includes("阻塞") ||
+      typeName.includes("block") ||
+      typeName.includes("阻塞")
+    );
+  }
+
   async function fetchIssueFields(issueKeys, fieldQuery) {
     if (!issueKeys.length) {
       return new Map();
@@ -72,13 +101,13 @@
     return fieldsByKey;
   }
 
-  // Jira expresses link direction through type.inward/outward, so for the
-  // "Is Blocked By" section we only keep inward links with that exact label.
+  // Jira link labels vary a bit between instances, so the blocked-bug section
+  // keeps inward links whose type metadata still clearly reads as "blocked by".
   function extractBlockedByIssues(issueLinks) {
     return (Array.isArray(issueLinks) ? issueLinks : [])
-      .filter((issueLink) => pickText(issueLink?.type?.inward).toLowerCase() === "is blocked by")
+      .filter(isBlockedByIssueLink)
       .map((issueLink) => normalizeIssuePreview(issueLink?.inwardIssue))
-      .filter((issue) => (issue?.issueTypeName || "").toLowerCase() === "bug")
+      .filter((issue) => isBugIssueTypeName(issue?.issueTypeName))
       .filter(Boolean);
   }
 
